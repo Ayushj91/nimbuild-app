@@ -1,0 +1,686 @@
+import React, { useEffect, useState } from 'react';
+import {
+    View,
+    StyleSheet,
+    ScrollView,
+    ActivityIndicator,
+    TextInput,
+    TouchableOpacity,
+    Alert,
+    Image,
+} from 'react-native';
+import { Heading, Body, Card, Badge, Button, Avatar, Icon } from '../../components';
+import { THEME } from '../../theme/Theme';
+import { TaskDetailsScreenProps } from '../../navigation/types';
+import { useRequest } from '../../hooks/useRequest';
+import { taskService } from '../../services/api/taskService';
+import { commentService } from '../../services/api/commentService';
+import { blueprintService } from '../../services/api/blueprintService';
+import { TaskStatus, Comment, Blueprint } from '../../types/api';
+import { BlueprintViewer } from '../../components/blueprint';
+
+export const TaskDetailsScreen: React.FC<TaskDetailsScreenProps> = ({
+    route,
+}) => {
+    const { projectId, taskId } = route.params;
+    const [commentText, setCommentText] = useState('');
+    const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
+    const [showBlueprintViewer, setShowBlueprintViewer] = useState(false);
+
+    const {
+        request: fetchDetails,
+        data: task,
+        loading,
+    } = useRequest(taskService.getTaskDetails);
+
+    const { request: updateTaskRequest, loading: updating } = useRequest(
+        taskService.updateTask,
+        {
+            onSuccess: () => {
+                fetchDetails(projectId, taskId);
+            },
+            successMessage: 'Task updated',
+        }
+    );
+
+    const { request: createCommentRequest, loading: commenting } = useRequest(
+        commentService.createComment,
+        {
+            onSuccess: () => {
+                setCommentText('');
+                fetchDetails(projectId, taskId);
+            },
+            successMessage: 'Comment added',
+        }
+    );
+
+    const { request: deleteCommentRequest } = useRequest(
+        commentService.deleteComment,
+        {
+            onSuccess: () => {
+                fetchDetails(projectId, taskId);
+            },
+            successMessage: 'Comment deleted',
+        }
+    );
+
+    const { request: fetchBlueprint, loading: loadingBlueprint } = useRequest(
+        blueprintService.getBlueprint,
+        {
+            onSuccess: (data) => setBlueprint(data),
+        }
+    );
+
+    useEffect(() => {
+        fetchDetails(projectId, taskId);
+    }, [projectId, taskId]);
+
+    useEffect(() => {
+        if (task?.blueprintId) {
+            fetchBlueprint(projectId, task.blueprintId);
+        }
+    }, [task?.blueprintId, projectId]);
+
+    if (loading && !task) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={THEME.colors.primary} />
+            </View>
+        );
+    }
+
+    if (!task) {
+        return (
+            <View style={styles.container}>
+                <Body>Task not found</Body>
+            </View>
+        );
+    }
+
+    const getStatusColor = (status: TaskStatus) => {
+        switch (status) {
+            case 'DONE':
+                return 'success';
+            case 'WIP':
+            case 'IN_PROGRESS':
+                return 'info';
+            case 'BLOCKED':
+                return 'error';
+            case 'INSPECTION':
+                return 'warning';
+            default:
+                return 'primary';
+        }
+    };
+
+    const getCategoryColor = (category?: string) => {
+        switch (category) {
+            case 'SNAG':
+                return 'warning';
+            case 'QUALITY_ISSUE':
+                return 'error';
+            case 'EHS_ISSUE':
+                return 'error';
+            default:
+                return 'info';
+        }
+    };
+
+    const handleStatusChange = (newStatus: TaskStatus) => {
+        updateTaskRequest(projectId, taskId, { status: newStatus });
+    };
+
+    const handleAddComment = () => {
+        if (commentText.trim()) {
+            createCommentRequest(projectId, taskId, { body: commentText.trim() });
+        }
+    };
+
+    const handleDeleteComment = (commentId: string) => {
+        Alert.alert(
+            'Delete Comment',
+            'Are you sure you want to delete this comment?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => deleteCommentRequest(projectId, taskId, commentId),
+                },
+            ]
+        );
+    };
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'Not set';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
+    };
+
+    const renderComment = (comment: Comment) => (
+        <View key={comment.id} style={styles.commentItem}>
+            <View style={styles.commentHeader}>
+                <View style={styles.commentUser}>
+                    <Avatar
+                        name={comment.createdByName}
+                        size="sm"
+                    />
+                    <View style={styles.commentUserInfo}>
+                        <Body>{comment.createdByName}</Body>
+                        <Body size="sm" style={styles.commentDate}>
+                            {formatDate(comment.createdAt)}
+                            {comment.isEdited && ' (edited)'}
+                        </Body>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={() => handleDeleteComment(comment.id)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Icon name="delete" size="sm" color={THEME.colors.error} />
+                </TouchableOpacity>
+            </View>
+            <Body style={styles.commentBody}>{comment.body}</Body>
+            {comment.attachments && comment.attachments.length > 0 && (
+                <View style={styles.attachments}>
+                    {comment.attachments.map((attachment, index) => (
+                        <View key={index} style={styles.attachmentTag}>
+                            <Icon
+                                name={
+                                    attachment.type === 'image'
+                                        ? 'image'
+                                        : 'file-document'
+                                }
+                                size="sm"
+                                color={THEME.colors.primary}
+                            />
+                            <Body size="sm" style={styles.attachmentName}>
+                                {attachment.filename}
+                            </Body>
+                        </View>
+                    ))}
+                </View>
+            )}
+        </View>
+    );
+
+    return (
+        <View style={styles.container}>
+            <ScrollView style={styles.scrollView}>
+                <View style={styles.content}>
+                    {/* Header with badges */}
+                    <View style={styles.header}>
+                        <View style={styles.badges}>
+                            <Badge
+                                value={task.status}
+                                variant={getStatusColor(task.status)}
+                                style={styles.badge}
+                            />
+                            {task.category && (
+                                <Badge
+                                    value={task.category}
+                                    variant={getCategoryColor(task.category)}
+                                    style={styles.badge}
+                                />
+                            )}
+                        </View>
+                        <Body size="sm" style={styles.date}>
+                            Created {formatDate(task.createdAt)}
+                        </Body>
+                    </View>
+
+                    {/* Title */}
+                    <Heading level={2} style={styles.title}>
+                        {task.title}
+                    </Heading>
+
+                    {/* Description */}
+                    {task.description && (
+                        <Body style={styles.description}>{task.description}</Body>
+                    )}
+
+                    {/* Location */}
+                    {task.location && (
+                        <View style={styles.locationRow}>
+                            <Icon
+                                name="map-marker"
+                                size="sm"
+                                color={THEME.colors.textSecondary}
+                            />
+                            <Body style={styles.locationText}>{task.location}</Body>
+                        </View>
+                    )}
+
+                    {/* Blueprint */}
+                    {task.blueprintId && blueprint && (
+                        <TouchableOpacity
+                            style={styles.blueprintCard}
+                            onPress={() => setShowBlueprintViewer(true)}>
+                            <View style={styles.blueprintHeader}>
+                                <Icon
+                                    name="file-document-outline"
+                                    size="lg"
+                                    color={THEME.colors.primary}
+                                />
+                                <View style={styles.blueprintInfo}>
+                                    <Body style={styles.blueprintTitle}>Blueprint Location</Body>
+                                    <Body size="sm" style={styles.blueprintFilename}>
+                                        {blueprint.filename}
+                                    </Body>
+                                </View>
+                                <Icon
+                                    name="chevron-right"
+                                    size="sm"
+                                    color={THEME.colors.textSecondary}
+                                />
+                            </View>
+                            {blueprint.thumbnailUrl && (
+                                <Image
+                                    source={{ uri: blueprint.thumbnailUrl }}
+                                    style={styles.blueprintThumbnail}
+                                    resizeMode="cover"
+                                />
+                            )}
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Details Section */}
+                    <View style={styles.section}>
+                        <Heading level={3} style={styles.sectionTitle}>
+                            Details
+                        </Heading>
+                        <Card style={styles.detailsCard}>
+                            {task.assignedToName && (
+                                <View style={styles.detailRow}>
+                                    <Body style={styles.label}>Assigned To:</Body>
+                                    <View style={styles.assigneeInfo}>
+                                        <Avatar
+                                            name={task.assignedToName}
+                                            size="sm"
+                                        />
+                                        <Body>{task.assignedToName}</Body>
+                                    </View>
+                                </View>
+                            )}
+                            {task.ccUsers && task.ccUsers.length > 0 && (
+                                <View style={styles.detailRow}>
+                                    <Body style={styles.label}>CC:</Body>
+                                    <View style={styles.ccUsers}>
+                                        {task.ccUsers.map((user) => (
+                                            <View key={user.id} style={styles.ccUserItem}>
+                                                <Avatar
+                                                    name={user.name}
+                                                    size="sm"
+                                                />
+                                                <Body size="sm">{user.name}</Body>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+                            <View style={styles.detailRow}>
+                                <Body style={styles.label}>Due Date:</Body>
+                                <Body>{formatDate(task.dueDate)}</Body>
+                            </View>
+                            <View style={styles.detailRow}>
+                                <Body style={styles.label}>Priority:</Body>
+                                <Body>{task.priority || 'None'}</Body>
+                            </View>
+                            {task.startDate && (
+                                <View style={styles.detailRow}>
+                                    <Body style={styles.label}>Start Date:</Body>
+                                    <Body>{formatDate(task.startDate)}</Body>
+                                </View>
+                            )}
+                            {task.finishDate && (
+                                <View style={styles.detailRow}>
+                                    <Body style={styles.label}>Finish Date:</Body>
+                                    <Body>{formatDate(task.finishDate)}</Body>
+                                </View>
+                            )}
+                            {task.duration && (
+                                <View style={styles.detailRow}>
+                                    <Body style={styles.label}>Duration:</Body>
+                                    <Body>
+                                        {task.duration} {task.unit || 'hours'}
+                                    </Body>
+                                </View>
+                            )}
+                            {task.quantity && (
+                                <View style={styles.detailRow}>
+                                    <Body style={styles.label}>Quantity:</Body>
+                                    <Body>
+                                        {task.quantity} {task.unit || 'units'}
+                                    </Body>
+                                </View>
+                            )}
+                            <View style={styles.detailRow}>
+                                <Body style={styles.label}>Created By:</Body>
+                                <Body>{task.createdByName}</Body>
+                            </View>
+                        </Card>
+                    </View>
+
+                    {/* Comments Section */}
+                    <View style={styles.section}>
+                        <Heading level={3} style={styles.sectionTitle}>
+                            Comments ({task.commentCount})
+                        </Heading>
+                        {task.comments && task.comments.length > 0 ? (
+                            <View style={styles.commentsContainer}>
+                                {task.comments.map(renderComment)}
+                            </View>
+                        ) : (
+                            <Card style={styles.emptyCommentsCard}>
+                                <Body style={styles.emptyText}>No comments yet</Body>
+                            </Card>
+                        )}
+                    </View>
+
+                    {/* Status Actions */}
+                    <View style={styles.actions}>
+                        {task.status === 'OPEN' && (
+                            <Button
+                                title="Start Progress"
+                                onPress={() => handleStatusChange('IN_PROGRESS')}
+                                loading={updating}
+                                variant="primary"
+                                style={styles.actionButton}
+                            />
+                        )}
+                        {(task.status === 'IN_PROGRESS' || task.status === 'WIP') && (
+                            <>
+                                <Button
+                                    title="Mark for Inspection"
+                                    onPress={() => handleStatusChange('INSPECTION')}
+                                    loading={updating}
+                                    variant="secondary"
+                                    style={styles.actionButton}
+                                />
+                                <Button
+                                    title="Mark as Done"
+                                    onPress={() => handleStatusChange('DONE')}
+                                    loading={updating}
+                                    variant="primary"
+                                    style={styles.actionButton}
+                                />
+                            </>
+                        )}
+                        {task.status === 'INSPECTION' && (
+                            <Button
+                                title="Mark as Done"
+                                onPress={() => handleStatusChange('DONE')}
+                                loading={updating}
+                                variant="primary"
+                                style={styles.actionButton}
+                            />
+                        )}
+                        {task.status === 'BLOCKED' && (
+                            <Button
+                                title="Resume Progress"
+                                onPress={() => handleStatusChange('IN_PROGRESS')}
+                                loading={updating}
+                                variant="primary"
+                                style={styles.actionButton}
+                            />
+                        )}
+                    </View>
+                </View>
+            </ScrollView>
+
+            {/* Comment Input (Fixed at bottom) */}
+            <View style={styles.commentInputContainer}>
+                <TextInput
+                    style={styles.commentInput}
+                    placeholder="Add a comment..."
+                    placeholderTextColor={THEME.colors.textTertiary}
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    multiline
+                    maxLength={500}
+                />
+                <TouchableOpacity
+                    style={[
+                        styles.sendButton,
+                        !commentText.trim() && styles.sendButtonDisabled,
+                    ]}
+                    onPress={handleAddComment}
+                    disabled={!commentText.trim() || commenting}>
+                    {commenting ? (
+                        <ActivityIndicator size="small" color={THEME.colors.white} />
+                    ) : (
+                        <Icon name="send" size="sm" color={THEME.colors.white} />
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
+
+        {/* Blueprint Viewer Modal */ }
+    {
+        showBlueprintViewer && blueprint && (
+            <BlueprintViewer
+                visible={showBlueprintViewer}
+                blueprintId={blueprint.id}
+                projectId={projectId}
+                highlightMarkerId={task?.markerId}
+                onClose={() => setShowBlueprintViewer(false)}
+            />
+        )
+    }
+    </View >
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: THEME.colors.background,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    scrollView: {
+        flex: 1,
+    },
+    content: {
+        padding: THEME.spacing.l,
+        paddingBottom: THEME.spacing.xl,
+    },
+    header: {
+        marginBottom: THEME.spacing.m,
+    },
+    badges: {
+        flexDirection: 'row',
+        gap: THEME.spacing.s,
+        marginBottom: THEME.spacing.s,
+    },
+    badge: {
+        alignSelf: 'flex-start',
+    },
+    date: {
+        color: THEME.colors.textTertiary,
+    },
+    title: {
+        marginBottom: THEME.spacing.m,
+    },
+    description: {
+        color: THEME.colors.textSecondary,
+        marginBottom: THEME.spacing.l,
+        lineHeight: 24,
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: THEME.spacing.xs,
+        marginBottom: THEME.spacing.l,
+    },
+    locationText: {
+        color: THEME.colors.textSecondary,
+    },
+    section: {
+        marginBottom: THEME.spacing.xl,
+    },
+    sectionTitle: {
+        marginBottom: THEME.spacing.m,
+    },
+    detailsCard: {
+        padding: THEME.spacing.l,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: THEME.spacing.m,
+    },
+    label: {
+        color: THEME.colors.textSecondary,
+        fontWeight: '500',
+        flex: 1,
+    },
+    assigneeInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: THEME.spacing.s,
+        flex: 2,
+        justifyContent: 'flex-end',
+    },
+    ccUsers: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: THEME.spacing.s,
+        flex: 2,
+        justifyContent: 'flex-end',
+    },
+    ccUserItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: THEME.spacing.xs,
+    },
+    commentsContainer: {
+        gap: THEME.spacing.m,
+    },
+    commentItem: {
+        backgroundColor: THEME.colors.surface,
+        padding: THEME.spacing.m,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: THEME.colors.border,
+    },
+    commentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: THEME.spacing.s,
+    },
+    commentUser: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: THEME.spacing.s,
+        flex: 1,
+    },
+    commentUserInfo: {
+        flex: 1,
+    },
+    commentDate: {
+        color: THEME.colors.textTertiary,
+    },
+    commentBody: {
+        lineHeight: 20,
+    },
+    attachments: {
+        marginTop: THEME.spacing.s,
+        gap: THEME.spacing.xs,
+    },
+    attachmentTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: THEME.spacing.xs,
+        backgroundColor: THEME.colors.surface,
+        paddingHorizontal: THEME.spacing.s,
+        paddingVertical: THEME.spacing.xs,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
+    },
+    attachmentName: {
+        color: THEME.colors.primary,
+    },
+    emptyCommentsCard: {
+        padding: THEME.spacing.xl,
+        alignItems: 'center',
+    },
+    emptyText: {
+        color: THEME.colors.textTertiary,
+    },
+    actions: {
+        gap: THEME.spacing.m,
+    },
+    actionButton: {
+        marginBottom: THEME.spacing.s,
+    },
+    commentInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: THEME.spacing.m,
+        backgroundColor: THEME.colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: THEME.colors.border,
+        gap: THEME.spacing.m,
+    },
+    commentInput: {
+        flex: 1,
+        backgroundColor: THEME.colors.background,
+        borderRadius: 8,
+        paddingHorizontal: THEME.spacing.m,
+        paddingVertical: THEME.spacing.s,
+        color: THEME.colors.text,
+        maxHeight: 100,
+        fontFamily: THEME.typography.fontFamily.regular,
+        fontSize: THEME.typography.fontSize.base,
+    },
+    sendButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: THEME.colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sendButtonDisabled: {
+        backgroundColor: THEME.colors.border,
+    },
+    // Blueprint styles
+    blueprintCard: {
+        backgroundColor: THEME.colors.white,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: THEME.colors.border,
+        padding: THEME.spacing.m,
+        marginBottom: THEME.spacing.m,
+    },
+    blueprintHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: THEME.spacing.m,
+        marginBottom: THEME.spacing.m,
+    },
+    blueprintInfo: {
+        flex: 1,
+    },
+    blueprintTitle: {
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    blueprintFilename: {
+        color: THEME.colors.textSecondary,
+    },
+    blueprintThumbnail: {
+        width: '100%',
+        height: 200,
+        borderRadius: 8,
+        backgroundColor: THEME.colors.surface,
+    },
+});

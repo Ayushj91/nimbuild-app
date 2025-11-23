@@ -1,0 +1,205 @@
+{
+  "timestamp": "2025-11-23T09:20:56.997Z",
+  "baseUrl": "http://13.200.224.49:8080/api",
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUz...",
+  "summary": {
+    "total": 21,
+    "successful": 18,
+    "failed": 3
+  },
+  "results": {
+    "success": [
+      {
+        "name": "Get Current User",
+        "method": "GET",
+        "path": "/auth/me",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "id, phone, email, name, avatarUrl, companyName, role, isVerified, status, createdAt, updatedAt"
+      },
+      {
+        "name": "Get Me (User Service)",
+        "method": "GET",
+        "path": "/auth/me",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "id, phone, email, name, avatarUrl, companyName, role, isVerified, status, createdAt, updatedAt"
+      },
+      {
+        "name": "Search Users",
+        "method": "GET",
+        "path": "/users/search?query=test",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[1]"
+      },
+      {
+        "name": "Get Projects",
+        "method": "GET",
+        "path": "/projects",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[5]"
+      },
+      {
+        "name": "Get Project Details",
+        "method": "GET",
+        "path": "/projects/fa8c8b6b-306e-4143-a1ba-8fce479dc804",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "id, name, description, createdBy, createdAt"
+      },
+      {
+        "name": "Get Project Members",
+        "method": "GET",
+        "path": "/projects/fa8c8b6b-306e-4143-a1ba-8fce479dc804/members",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[6]"
+      },
+      {
+        "name": "List Blueprints",
+        "method": "GET",
+        "path": "/projects/fa8c8b6b-306e-4143-a1ba-8fce479dc804/blueprints",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "blueprints, pagination"
+      },
+      {
+        "name": "Get Project Groups",
+        "method": "GET",
+        "path": "/projects/fa8c8b6b-306e-4143-a1ba-8fce479dc804/groups",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[1]"
+      },
+      {
+        "name": "Get Group Details",
+        "method": "GET",
+        "path": "/groups/a41044fb-a5c9-42bc-9f91-d448626a078b",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "id, name, description, projectId, projectName, createdById, createdByName, isDefault, createdAt, members, memberCount, unreadMessageCount, lastMessage"
+      },
+      {
+        "name": "Get Group Messages",
+        "method": "GET",
+        "path": "/groups/a41044fb-a5c9-42bc-9f91-d448626a078b/messages",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "content, pageable, totalElements, totalPages, last, size, number, sort, numberOfElements, first, empty"
+      },
+      {
+        "name": "Get Group Assets",
+        "method": "GET",
+        "path": "/groups/a41044fb-a5c9-42bc-9f91-d448626a078b/assets",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "content, pageable, totalElements, totalPages, last, size, number, sort, numberOfElements, first, empty"
+      },
+      {
+        "name": "Get Assigned To Me Feed",
+        "method": "GET",
+        "path": "/feeds/assigned-to-me?limit=20",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[5]"
+      },
+      {
+        "name": "Get Assigned By Me Feed",
+        "method": "GET",
+        "path": "/feeds/assigned-by-me?limit=20",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[5]"
+      },
+      {
+        "name": "Get Watching Feed",
+        "method": "GET",
+        "path": "/feeds/watching?limit=20",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[0]"
+      },
+      {
+        "name": "Get Recent Feed",
+        "method": "GET",
+        "path": "/feeds/recent?limit=20",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[0]"
+      },
+      {
+        "name": "Get Notifications",
+        "method": "GET",
+        "path": "/notifications?page=0&size=20",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "content, pageable, totalElements, totalPages, last, size, number, sort, numberOfElements, first, empty"
+      },
+      {
+        "name": "Get Unread Count",
+        "method": "GET",
+        "path": "/notifications/unread-count",
+        "status": 200,
+        "sentData": null,
+        "responseType": "object",
+        "responsePreview": "count"
+      },
+      {
+        "name": "Get User Groups",
+        "method": "GET",
+        "path": "/groups/user",
+        "status": 200,
+        "sentData": null,
+        "responseType": "array",
+        "responsePreview": "Array[6]"
+      }
+    ],
+    "failed": [
+      {
+        "name": "Get Avatar Download URL",
+        "method": "GET",
+        "path": "/users/me/avatar/download",
+        "sentData": null,
+        "status": 400,
+        "error": "Request failed with status code 400",
+        "fullError": "No avatar uploaded"
+      },
+      {
+        "name": "Get Tasks",
+        "method": "GET",
+        "path": "/projects/fa8c8b6b-306e-4143-a1ba-8fce479dc804/tasks",
+        "sentData": null,
+        "status": 400,
+        "error": "Request failed with status code 400",
+        "fullError": "Failed to get tasks: JDBC exception executing SQL [select distinct t1_0.id,t1_0.assigned_to,t1_0.blueprint_id,t1_0.category,t1_0.cc_users,t1_0.created_at,t1_0.created_by,t1_0.description,t1_0.due_date,t1_0.duration,t1_0.finish_date,t1_0.location,t1_0.metadata,t1_0.priority,t1_0.project_id,t1_0.quantity,t1_0.start_date,t1_0.status,t1_0.title,t1_0.unit,t1_0.updated_at from tasks t1_0 where t1_0.project_id=? and (? is null or t1_0.status in (?)) and (? is null or t1_0.assigned_to=?) and (? is null or t1_0.created_by=?) and (? is null or t1_0.priority>=?) and (? is null or t1_0.priority<=?) and (? is null or t1_0.due_date>=?) and (? is null or t1_0.due_date<=?) and (? is null or t1_0.category in (?)) and (? is null or t1_0.location=?) and (? is null or upper(t1_0.title) like upper(('%'||?||'%')) escape '' or (t1_0.description is not null and upper(t1_0.description) like upper(('%'||?||'%')) escape '')) order by t1_0.updated_at desc fetch first ? rows only] [ERROR: function upper(bytea) does not exist\n  Hint: No function matches the given name and argument types. You might need to add explicit type casts.\n  Position: 763] [n/a]; SQL [n/a]"
+      },
+      {
+        "name": "Search Tasks Feed",
+        "method": "GET",
+        "path": "/feeds/search?q=test&limit=20",
+        "sentData": null,
+        "status": 403,
+        "error": "Request failed with status code 403",
+        "fullError": "Request failed with status code 403"
+      }
+    ]
+  }
+}
